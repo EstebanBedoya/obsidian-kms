@@ -52,7 +52,10 @@ services:
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:?set COUCHDB_PASSWORD}
       COUCHDB_DATABASE: ${COUCHDB_DATABASE:-obsidiannotes}
       COUCHDB_PASSPHRASE: ${COUCHDB_PASSPHRASE:?set COUCHDB_PASSPHRASE}
-      COUCHDB_OBFUSCATE_PROPERTIES: "false"
+      # LiveSync 1.0.33+ vaults use obfuscated IDs; the MCP needs the ID recovery code
+      # (sls-id-v1:...) printed by the Setup URI generator, set in Dokploy → Environment.
+      COUCHDB_OBFUSCATE_PROPERTIES: ${COUCHDB_OBFUSCATE_PROPERTIES:-true}
+      COUCHDB_ID_DERIVATION_KEY: ${COUCHDB_ID_DERIVATION_KEY:?set COUCHDB_ID_DERIVATION_KEY}
       VAULT_NAME: ${VAULT_NAME:-Notas}
       MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:?set MCP_AUTH_TOKEN}
       BASE_URL: https://${MCP_DOMAIN:?set MCP_DOMAIN}
