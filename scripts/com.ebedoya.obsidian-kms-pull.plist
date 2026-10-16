@@ -9,6 +9,8 @@
     <string>/bin/bash</string>
     <string>/Users/ebedoya/Tools/obsidian-kms/scripts/pull-backups.sh</string>
   </array>
+  <key>StartOnMount</key>
+  <true/>
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key>
