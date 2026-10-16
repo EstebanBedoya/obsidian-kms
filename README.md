@@ -22,7 +22,7 @@ Compose: [docker-compose.yml](docker-compose.yml). La config de CouchDB (single_
 ## Secretos
 
 Generados localmente en `~/.config/obsidian-kms/secrets.env` (permisos 600). Variables:
-`COUCHDB_USER`, `COUCHDB_PASSWORD`, `MCP_AUTH_TOKEN`, `COUCHDB_PASSPHRASE`. Además `MCP_DOMAIN=mcp.mimot.app` (no secreta, sin `https://`; alimenta `BASE_URL` del MCP).
+`COUCHDB_USER`, `COUCHDB_PASSWORD`, `MCP_AUTH_TOKEN`, `COUCHDB_PASSPHRASE` y `COUCHDB_ID_DERIVATION_KEY` (código `sls-id-v1:...` del generador del Setup URI; sin él el MCP no abre el vault). Además `MCP_DOMAIN=mcp.mimot.app` (no secreta, sin `https://`; alimenta `BASE_URL` del MCP).
 
 - `COUCHDB_PASSPHRASE` es la passphrase de cifrado E2E de LiveSync: debe ser **la misma** en cada cliente y en el MCP. Guárdala en un gestor de contraseñas; sin ella no se leen las notas.
 - Defaults del compose: `COUCHDB_DATABASE=obsidiannotes`, `VAULT_NAME=Notas` (el vault de Obsidian debe llamarse igual), `COUCHDB_OBFUSCATE_PROPERTIES=false` (debe coincidir con LiveSync).
@@ -37,6 +37,7 @@ Generados localmente en `~/.config/obsidian-kms/secrets.env` (permisos 600). Var
   3. Dokploy deja los servicios con dominio solo en `dokploy-network`; `db-init` debe unirse a esa red o no resuelve `couchdb`.
   4. Tras cambiar el repo hay que usar **Deploy**, no Redeploy (Redeploy reutiliza el código ya clonado).
   5. Si un deploy se cuelga esperando a `db-init`, hay que parar la app antes de redesplegar.
+  6. Tras inicializar LiveSync desde Obsidian el vault usa IDs ofuscados: el MCP necesita `COUCHDB_ID_DERIVATION_KEY` (el código de recuperación de ID) y falla con "Vault document IDs do not match" si falta. Reiniciar el MCP antes de tenerlo lo deja en bucle.
 - Alternativa descartada: template "Obsidian LiveSync" de Dokploy (solo CouchDB, sin MCP).
 - Logs por SSH (solo lectura): `ssh vps 'docker logs --tail 100 <contenedor>'`.
 
