@@ -7,11 +7,12 @@ services:
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:?set COUCHDB_PASSWORD}
     volumes:
       - couchdb_data:/opt/couchdb/data
+      - ./couchdb-init.ini:/opt/couchdb/etc/local.d/livesync.ini:ro
     expose:
       - "5984"
 
-  # One-shot: waits for CouchDB, applies the LiveSync CORS settings
-  # (same values as the upstream couchdb-init.ini) and creates the database.
+  # One-shot: waits for CouchDB (settings come from couchdb-init.ini at boot)
+  # and creates the database if it does not exist.
   db-init:
     image: couchdb:3
     depends_on:
@@ -29,19 +30,6 @@ services:
         AUTH="$$COUCHDB_USER:$$COUCHDB_PASSWORD"
         URL=http://couchdb:5984
         until curl -sf -u "$$AUTH" "$$URL/_up" >/dev/null 2>&1; do sleep 1; done
-        cfg() { curl -sf -u "$$AUTH" -X PUT "$$URL/_node/_local/_config/$$1" -d "\"$$2\"" >/dev/null; }
-        cfg couchdb/single_node true
-        cfg couchdb/max_document_size 50000000
-        cfg chttpd/require_valid_user true
-        cfg chttpd/max_http_request_size 4294967296
-        cfg chttpd/enable_cors true
-        cfg chttpd_auth/require_valid_user true
-        cfg httpd/enable_cors true
-        cfg cors/origins "app://obsidian.md,capacitor://localhost,http://localhost"
-        cfg cors/credentials true
-        cfg cors/methods "GET, PUT, POST, HEAD, DELETE"
-        cfg cors/headers "accept, authorization, content-type, origin, referer, cache-control"
-        cfg cors/max_age 3600
         code=$$(curl -s -o /dev/null -w '%{http_code}' -u "$$AUTH" "$$URL/$$COUCHDB_DATABASE")
         if [ "$$code" != "200" ]; then curl -sf -u "$$AUTH" -X PUT "$$URL/$$COUCHDB_DATABASE" >/dev/null; fi
         echo "CouchDB init done"
