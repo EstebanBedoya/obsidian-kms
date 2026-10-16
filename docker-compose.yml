@@ -7,7 +7,7 @@ services:
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:?set COUCHDB_PASSWORD}
     volumes:
       - couchdb_data:/opt/couchdb/data
-      - ./couchdb-init.ini:/opt/couchdb/etc/local.d/livesync.ini:ro
+      - ./couchdb-init.ini:/opt/couchdb/etc/local.d/livesync.ini
     expose:
       - "5984"
 
