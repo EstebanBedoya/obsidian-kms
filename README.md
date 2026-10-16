@@ -1,6 +1,6 @@
 # obsidian-kms — Obsidian + LiveSync + MCP en el VPS
 
-Estado al 2026-10-16: app Compose creada en Dokploy, **pendiente** de variables, dominio y deploy (hecho a mano en la UI; ver "Estado").
+Estado al 2026-10-16: **desplegado y verificado** (CouchDB + MCP de solo lectura, HTTPS válido). Falta solo configurar Obsidian en Mac y móvil.
 
 ## Arquitectura
 
@@ -9,7 +9,7 @@ Estado al 2026-10-16: app Compose creada en Dokploy, **pendiente** de variables,
 | VPS | VPS propio , Dokploy v0.26.5, Traefik en 80/443 |
 | Dokploy | proyecto **Personal** / production, app Compose `obsidian-kms` |
 | CouchDB | `couchdb:3`, volumen `couchdb_data`, sin puertos publicados |
-| db-init | one-shot: aplica CORS de LiveSync y crea la base `obsidiannotes` |
+| db-init | one-shot: crea la base de datos (`COUCHDB_DATABASE`) si no existe |
 | MCP | `ghcr.io/es617/obsidian-sync-mcp`, `READ_ONLY=true`, puerto 8787 interno |
 | Dominios | `sync.mimot.app` (CouchDB) y `mcp.mimot.app` (MCP); registros A → IP del VPS |
 
@@ -17,7 +17,7 @@ Rutas Traefik (HTTPS Let's Encrypt):
 - `https://sync.mimot.app/` → servicio `couchdb`, puerto 5984
 - `https://mcp.mimot.app/` → servicio `mcp`, puerto 8787 (endpoint MCP: `https://mcp.mimot.app/mcp`)
 
-Compose: [docker-compose.yml](docker-compose.yml). Referencia por servicio, sin secretos.
+Compose: [docker-compose.yml](docker-compose.yml). La config de CouchDB (single_node, CORS, auth) está en [couchdb-init.ini](couchdb-init.ini), montado al arrancar. Dokploy despliega desde este repo (rama `main`).
 
 ## Secretos
 
@@ -27,15 +27,18 @@ Generados localmente en `~/.config/obsidian-kms/secrets.env` (permisos 600). Var
 - `COUCHDB_PASSPHRASE` es la passphrase de cifrado E2E de LiveSync: debe ser **la misma** en cada cliente y en el MCP. Guárdala en un gestor de contraseñas; sin ella no se leen las notas.
 - Defaults del compose: `COUCHDB_DATABASE=obsidiannotes`, `VAULT_NAME=Notas` (el vault de Obsidian debe llamarse igual), `COUCHDB_OBFUSCATE_PROPERTIES=false` (debe coincidir con LiveSync).
 
-## Estado y pendientes
+## Estado y lecciones del despliegue
 
-- Hecho: app creada en Personal con este compose.
-- No hecho (bloqueado): cargar variables y rutas por API. Dokploy v0.26.5 no tiene `compose.saveEnvironment` (404) y el clasificador bloqueó la creación de dominios. Se hace en la UI:
-  1. Environment: pegar las 4 variables.
-  2. Domains: las 2 rutas de arriba, HTTPS.
-  3. Deploy.
-- Alternativa si falla: template "Obsidian LiveSync" de Dokploy (solo CouchDB + CORS) y añadirle el servicio `mcp` a su compose.
-- Compose **no probado**: el primer deploy lo valida. Si `db-init` o CouchDB fallan, revisar logs por SSH (solo lectura): `ssh vps 'docker logs --tail 100 <contenedor>'`.
+- Hecho: variables, dominios y deploy; CouchDB, CORS (desktop y móvil), certificados y MCP verificados.
+- Los valores reales de las variables (usuario, base, vault) son los que hay en **Dokploy → Environment**, que pueden diferir de los defaults y de `secrets.env`. El vault de Obsidian debe llamarse como `VAULT_NAME` y LiveSync debe usar la base `COUCHDB_DATABASE`.
+- Lecciones (cada una costó un despliegue colgado):
+  1. CouchDB necesita `single_node=true` **al arrancar** (ini montado); fijarlo luego por API no crea `_users`.
+  2. El `.ini` se monta **sin `:ro`**: la imagen hace `chown` al arrancar y sale con código 1 sin loguear nada.
+  3. Dokploy deja los servicios con dominio solo en `dokploy-network`; `db-init` debe unirse a esa red o no resuelve `couchdb`.
+  4. Tras cambiar el repo hay que usar **Deploy**, no Redeploy (Redeploy reutiliza el código ya clonado).
+  5. Si un deploy se cuelga esperando a `db-init`, hay que parar la app antes de redesplegar.
+- Alternativa descartada: template "Obsidian LiveSync" de Dokploy (solo CouchDB, sin MCP).
+- Logs por SSH (solo lectura): `ssh vps 'docker logs --tail 100 <contenedor>'`.
 
 ## Verificación tras el deploy
 
