@@ -13,11 +13,15 @@ services:
 
   # One-shot: waits for CouchDB (settings come from couchdb-init.ini at boot)
   # and creates the database if it does not exist.
+  # Dokploy puts the services that have a domain (couchdb, mcp) on dokploy-network
+  # only, so db-init must join it too or it cannot resolve "couchdb".
   db-init:
     image: couchdb:3
     depends_on:
       - couchdb
     restart: "no"
+    networks:
+      - dokploy-network
     environment:
       COUCHDB_USER: ${COUCHDB_USER:?set COUCHDB_USER}
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:?set COUCHDB_PASSWORD}
@@ -60,3 +64,7 @@ services:
 volumes:
   couchdb_data:
   mcp_data:
+
+networks:
+  dokploy-network:
+    external: true
