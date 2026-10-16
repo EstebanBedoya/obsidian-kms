@@ -11,18 +11,18 @@ Estado al 2026-10-16: app Compose creada en Dokploy, **pendiente** de variables,
 | CouchDB | `couchdb:3`, volumen `couchdb_data`, sin puertos publicados |
 | db-init | one-shot: aplica CORS de LiveSync y crea la base `obsidiannotes` |
 | MCP | `ghcr.io/es617/obsidian-sync-mcp`, `READ_ONLY=true`, puerto 8787 interno |
-| Dominio | `sync.mimot.app` (registro A → IP del VPS, **por crear** antes del deploy) |
+| Dominios | `sync.mimot.app` (CouchDB) y `mcp.mimot.app` (MCP); registros A → IP del VPS |
 
 Rutas Traefik (HTTPS Let's Encrypt):
 - `https://sync.mimot.app/` → servicio `couchdb`, puerto 5984
-- `https://sync.mimot.app/mcp` → servicio `mcp`, puerto 8787
+- `https://mcp.mimot.app/` → servicio `mcp`, puerto 8787 (endpoint MCP: `https://mcp.mimot.app/mcp`)
 
 Compose: [docker-compose.yml](docker-compose.yml). Referencia por servicio, sin secretos.
 
 ## Secretos
 
 Generados localmente en `~/.config/obsidian-kms/secrets.env` (permisos 600). Variables:
-`COUCHDB_USER`, `COUCHDB_PASSWORD`, `MCP_AUTH_TOKEN`, `COUCHDB_PASSPHRASE`.
+`COUCHDB_USER`, `COUCHDB_PASSWORD`, `MCP_AUTH_TOKEN`, `COUCHDB_PASSPHRASE`. Además `MCP_DOMAIN=mcp.mimot.app` (no secreta, sin `https://`; alimenta `BASE_URL` del MCP).
 
 - `COUCHDB_PASSPHRASE` es la passphrase de cifrado E2E de LiveSync: debe ser **la misma** en cada cliente y en el MCP. Guárdala en un gestor de contraseñas; sin ella no se leen las notas.
 - Defaults del compose: `COUCHDB_DATABASE=obsidiannotes`, `VAULT_NAME=Notas` (el vault de Obsidian debe llamarse igual), `COUCHDB_OBFUSCATE_PROPERTIES=false` (debe coincidir con LiveSync).
@@ -45,13 +45,13 @@ curl -s -u "$COUCHDB_USER:$COUCHDB_PASSWORD" https://sync.mimot.app/_up
 curl -s -u "$COUCHDB_USER:$COUCHDB_PASSWORD" https://sync.mimot.app/obsidiannotes
 
 # MCP (con token): debe responder, y sin token debe rechazar
-curl -si https://sync.mimot.app/mcp | head -1
+curl -si https://mcp.mimot.app/mcp | head -1
 ```
 
 ## Conectar Claude Code al MCP
 
 ```bash
-claude mcp add --transport http obsidian https://sync.mimot.app/mcp \
+claude mcp add --transport http obsidian https://mcp.mimot.app/mcp \
   --header "Authorization: Bearer <MCP_AUTH_TOKEN>"
 ```
 

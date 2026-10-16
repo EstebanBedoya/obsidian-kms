@@ -63,7 +63,7 @@ services:
       COUCHDB_OBFUSCATE_PROPERTIES: "false"
       VAULT_NAME: ${VAULT_NAME:-Notas}
       MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:?set MCP_AUTH_TOKEN}
-      BASE_URL: https://sync.mimot.app/mcp
+      BASE_URL: https://${MCP_DOMAIN:?set MCP_DOMAIN}
       READ_ONLY: "true"
       DATA_DIR: /data
     volumes:
