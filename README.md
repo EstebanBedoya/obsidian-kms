@@ -11,7 +11,7 @@ Estado al 2026-10-16: app Compose creada en Dokploy, **pendiente** de variables,
 | CouchDB | `couchdb:3`, volumen `couchdb_data`, sin puertos publicados |
 | db-init | one-shot: aplica CORS de LiveSync y crea la base `obsidiannotes` |
 | MCP | `ghcr.io/es617/obsidian-sync-mcp`, `READ_ONLY=true`, puerto 8787 interno |
-| Dominio | `sync.mimot.app` (DNS A → IP del VPS) |
+| Dominio | `sync.mimot.app` (registro A → IP del VPS, **por crear** antes del deploy) |
 
 Rutas Traefik (HTTPS Let's Encrypt):
 - `https://sync.mimot.app/` → servicio `couchdb`, puerto 5984
