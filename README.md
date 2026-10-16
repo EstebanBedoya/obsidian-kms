@@ -77,23 +77,38 @@ Docs oficiales: https://github.com/vrtmrz/obsidian-livesync (docs/setup_own_serv
 
 Meeting Copilot (https://github.com/alvarolobato/obsidian-meeting-copilot) es un plugin solo del Mac: Whisper/Ollama locales, nada en el VPS.
 
-## Backup y restauración (propuesto, aún no configurado)
+## Backup y restauración
 
-Datos: volumen Docker `couchdb_data` (nombre real con prefijo del proyecto: `docker volume ls | grep couchdb_data`).
+**Automático** (configurado el 2026-10-16): [scripts/backup.sh](scripts/backup.sh) corre en el VPS cada día a las 03:30 UTC (`/etc/cron.d/obsidian-kms-backup`).
+- Copia el volumen de CouchDB (`compose-navigate-neural-alarm-rmwayh_couchdb_data`) a `/var/backups/obsidian-kms/couchdb-<fecha>.tgz`, con su `.sha256`. Permisos 600, solo root.
+- Comprueba la integridad del `.tgz` antes de conservarlo y borra copias de más de 14 días.
+- Log: `/var/log/obsidian-kms-backup.log`. Los ficheros de CouchDB son append-only, así que copiarlos con el servidor encendido es seguro.
+- No incluye el volumen del MCP (índice de búsqueda y sesiones OAuth): se regenera solo.
+- Si el `appName` de Dokploy cambia, cambia el nombre del volumen: el script falla con un error claro; ajusta `VOL`.
 
-Backup (en el VPS):
+**Reinstalar el script** (si se rehace el VPS):
 ```bash
-docker run --rm -v <VOLUMEN>:/data:ro -v /root/backups/obsidian-kms:/backup alpine \
-  tar czf /backup/couchdb-$(date +%F).tgz -C /data .
+scp scripts/backup.sh vps:/tmp/obsidian-kms-backup.sh
+ssh vps 'install -m 750 /tmp/obsidian-kms-backup.sh /usr/local/bin/obsidian-kms-backup.sh'
+ssh vps 'echo "30 3 * * * root /usr/local/bin/obsidian-kms-backup.sh >> /var/log/obsidian-kms-backup.log 2>&1" > /etc/cron.d/obsidian-kms-backup'
 ```
-Programarlo a diario con cron, retención ~14 días, y copiar fuera del VPS.
 
-Restauración (con la app parada desde Dokploy):
+**Restaurar** (la app se para desde Dokploy para que CouchDB no escriba):
 ```bash
-docker run --rm -v <VOLUMEN>:/data -v /root/backups/obsidian-kms:/backup alpine \
-  sh -c 'rm -rf /data/* && tar xzf /backup/couchdb-<FECHA>.tgz -C /data'
+# 1. En Dokploy: Stop obsidian-kms
+# 2. En el VPS (elige la copia y verifícala):
+cd /var/backups/obsidian-kms && sha256sum -c couchdb-<FECHA>.tgz.sha256
+V=compose-navigate-neural-alarm-rmwayh_couchdb_data
+mv /var/lib/docker/volumes/$V/_data /var/lib/docker/volumes/$V/_data.old   # no borrar hasta comprobar
+mkdir /var/lib/docker/volumes/$V/_data
+tar xzf couchdb-<FECHA>.tgz -C /var/lib/docker/volumes/$V/_data
+# 3. En Dokploy: Deploy obsidian-kms
+# 4. Comprobar notas y sync; si todo va bien, borrar _data.old
 ```
-Luego Deploy. Probar la restauración en un volumen temporal antes de confiar en el backup.
+
+**Probado** el 2026-10-16: la copia extraída en un directorio temporal es idéntica (`diff -rq`) al volumen vivo. Aún no se ha arrancado un CouchDB desde una copia restaurada; hazlo una vez con datos reales.
+
+**Pendiente (recomendado):** las copias están en el mismo disco que los datos; no protegen si se pierde el VPS. Traerlas a otro sitio (p. ej. `rsync` desde el Mac o un bucket S3).
 
 ## Notas de seguridad
 
