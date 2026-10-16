@@ -108,7 +108,12 @@ tar xzf couchdb-<FECHA>.tgz -C /var/lib/docker/volumes/$V/_data
 
 **Probado** el 2026-10-16: la copia extraída en un directorio temporal es idéntica (`diff -rq`) al volumen vivo. Aún no se ha arrancado un CouchDB desde una copia restaurada; hazlo una vez con datos reales.
 
-**Pendiente (recomendado):** las copias están en el mismo disco que los datos; no protegen si se pierde el VPS. Traerlas a otro sitio (p. ej. `rsync` desde el Mac o un bucket S3).
+**Copia fuera del VPS (Disk X):** [scripts/pull-backups.sh](scripts/pull-backups.sh) trae las copias del VPS a `/Volumes/Disk X/Backups/obsidian-kms/` con `rsync` por SSH (alias `vps`), verifica cada `.sha256` y conserva 60 días. Si Disk X no está montado, se salta sin error y se pone al día en la siguiente ejecución.
+- A mano (funciona desde Terminal): `./scripts/pull-backups.sh`
+- Automático: LaunchAgent [scripts/com.ebedoya.obsidian-kms-pull.plist](scripts/com.ebedoya.obsidian-kms-pull.plist), diario a las 08:00 hora local (`~/Library/LaunchAgents/`). Log: `~/Library/Logs/obsidian-kms-pull.log`.
+- **Permiso necesario (una vez):** macOS impide que los procesos de `launchd` escriban en discos externos. Hay que añadir `/bin/bash` en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco. Sin eso el agente falla con `Operation not permitted` (código 12); a mano sigue funcionando.
+- Disk X es ExFAT: no guarda permisos de Unix, así que quien tenga el disco puede leer las copias. Las notas van cifradas de extremo a extremo con la passphrase de LiveSync, pero conviene tratar el disco como sensible.
+- Quitar la automatización: `launchctl bootout gui/$(id -u)/com.ebedoya.obsidian-kms-pull && rm ~/Library/LaunchAgents/com.ebedoya.obsidian-kms-pull.plist`
 
 ## Notas de seguridad
 
