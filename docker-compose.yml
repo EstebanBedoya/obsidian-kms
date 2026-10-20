@@ -59,10 +59,11 @@ services:
       VAULT_NAME: ${VAULT_NAME:-Notas}
       MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:?set MCP_AUTH_TOKEN}
       BASE_URL: https://${MCP_DOMAIN:?set MCP_DOMAIN}
-      # Writes are limited to WRITE_FOLDERS (comma-separated); the rest of the vault stays read-only.
-      # Set READ_ONLY=true in Dokploy to disable all write tools again.
+      # Empty = the MCP can write anywhere in the vault (root included). Set WRITE_FOLDERS in Dokploy
+      # (comma-separated, e.g. "MCP,Inbox") to restrict writes to those folders.
+      # Set READ_ONLY=true in Dokploy to disable all write tools.
       READ_ONLY: ${READ_ONLY:-false}
-      WRITE_FOLDERS: ${WRITE_FOLDERS:-MCP}
+      WRITE_FOLDERS: ${WRITE_FOLDERS:-}
       DATA_DIR: /data
     volumes:
       - mcp_data:/data

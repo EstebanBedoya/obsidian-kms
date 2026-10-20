@@ -10,7 +10,7 @@ Estado al 2026-10-16: **desplegado y verificado** (CouchDB + MCP de solo lectura
 | Dokploy | proyecto **Personal** / production, app Compose `obsidian-kms` |
 | CouchDB | `couchdb:3`, volumen `couchdb_data`, sin puertos publicados |
 | db-init | one-shot: crea la base de datos (`COUCHDB_DATABASE`) si no existe |
-| MCP | `ghcr.io/es617/obsidian-sync-mcp`, escritura limitada a `MCP/` (`WRITE_FOLDERS`), puerto 8787 interno |
+| MCP | `ghcr.io/es617/obsidian-sync-mcp`, escritura en todo el vault salvo que `WRITE_FOLDERS` lo limite, puerto 8787 interno |
 | Dominios | `sync.mimot.app` (CouchDB) y `mcp.mimot.app` (MCP); registros A → IP del VPS |
 
 Rutas Traefik (HTTPS Let's Encrypt):
@@ -59,7 +59,7 @@ claude mcp add --transport http obsidian https://mcp.mimot.app/mcp \
   --header "Authorization: Bearer <MCP_AUTH_TOKEN>"
 ```
 
-El token está en `secrets.env`. El MCP puede leer todo el vault, pero **solo escribe dentro de `MCP/`** (`WRITE_FOLDERS=MCP`, aplicado en el servidor). Para ampliar las carpetas, cambia `WRITE_FOLDERS` en Dokploy → Environment y haz Deploy; para volver a solo lectura, `READ_ONLY=true`. El MCP puede modificar y borrar notas dentro de esas carpetas: confía en los backups.
+El token está en `secrets.env`. Por defecto el MCP puede escribir en todo el vault, incluida la raíz (`WRITE_FOLDERS` vacío). Para limitarlo a carpetas concretas, pon `WRITE_FOLDERS` en Dokploy → Environment (p. ej. `MCP,Inbox`) y haz Deploy; para volver a solo lectura, `READ_ONLY=true`. Ojo: si Dokploy ya tiene `WRITE_FOLDERS=MCP` guardado, hay que borrarlo o cambiarlo ahí, porque el compose no lo sobrescribe. El MCP puede modificar y borrar notas dentro de esas carpetas: confía en los backups.
 
 ## Configurar Obsidian (Mac y móvil)
 
